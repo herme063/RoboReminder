@@ -1,2 +1,2 @@
 # RoboReminderWeb
-A nice robot caller that you enabled on purpose.
+A nice robot that texts and calls you to keep you in check.
