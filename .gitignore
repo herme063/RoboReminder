@@ -2,4 +2,8 @@
 # This .gitignore file was automatically created by Microsoft(R) Visual Studio.
 ################################################################################
 
-/.vs/RoboReminderWeb/v15
+/.vs/**
+/RoboReminderWeb/bin/**
+/RoboReminderWeb/obj/**
+/RoboReminderWeb/appsettings.Development.json
+/RoboReminderWeb/RoboReminderWeb.csproj.user
