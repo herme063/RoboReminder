@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using Hangfire;
+using Hangfire.Storage;
 using Humanizer;
 using TimeZoneConverter;
 using Twilio.Clients;
@@ -21,11 +23,21 @@ namespace RoboReminderWeb
 
 		public void Schedule()
 		{
+			// cleanup obsolete jobs
+			ISet<string> validJobs = new HashSet<string>(_applicationSettings.Data.Select(d => DailyTipJobId.FormatWith(d.Username))
+				.Concat(_applicationSettings.Data.Select(d => DailyMantraJobId.FormatWith(d.Username))));
+			IList<string> obsoleteJobs = JobStorage.Current.GetConnection().GetRecurringJobs()
+				.Select(r => r.Id)
+				.Where(jobId => !validJobs.Contains(jobId))
+				.ToList();
+			foreach(string obsoleteJob in obsoleteJobs)
+			{
+				RecurringJob.RemoveIfExists(obsoleteJob);
+			}
+
+			// schedule jobs
 			foreach (ApplicationSettings.DataConfiguration data in _applicationSettings.Data)
 			{
-				RecurringJob.RemoveIfExists(DailyTipJobId.FormatWith(data.Username));
-				RecurringJob.RemoveIfExists(DailyMantraJobId.FormatWith(data.Username));
-
 				if (data.DailyQuotes.Enabled)
 				{
 					RecurringJob.AddOrUpdate<Scheduler>(
@@ -50,7 +62,12 @@ namespace RoboReminderWeb
 			string username)
 		{
 			ApplicationSettings.DataConfiguration data = _applicationSettings.Data
-				.Single(d => d.Username == username);
+				.SingleOrDefault(d => d.Username == username);
+			if (data == null)
+			{
+				return;
+			}
+
 			string tip = data.DailyQuotes.Quotes
 				.OrderBy(t => Guid.NewGuid())
 				.First();
@@ -70,7 +87,12 @@ namespace RoboReminderWeb
 			string username)
 		{
 			ApplicationSettings.DataConfiguration data = _applicationSettings.Data
-				.Single(d => d.Username == username);
+				.SingleOrDefault(d => d.Username == username);
+			if (data == null)
+			{
+				return;
+			}
+
 			int mantraIndex = data.DailyMantra.Mantras
 				.Select((m, idx) => idx)
 				.OrderBy(idx => Guid.NewGuid())
